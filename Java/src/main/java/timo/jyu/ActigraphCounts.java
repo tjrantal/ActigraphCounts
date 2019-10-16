@@ -80,12 +80,14 @@ public class ActigraphCounts{
 	
 	//Calculate 10 sample integrals
 	private double[] calcCounts(double[] a){
-		double[] b = new double[(int) (Math.floor(a.length/integN))];
+		double[] b = new double[(int) (Math.ceil(((double) a.length)/((double) integN)))];
 		for (int i = 0;i<b.length;++i){
 			for (int j = 0;j<integN;++j){
-				b[i]+=a[integN*i+j];
+				if (integN*i+j <a.length){
+					b[i]+=a[integN*i+j];
+				}
 			}
 		}
-		return b;		
+		return b;	
 	}
 }
