@@ -17,7 +17,7 @@ public class Utils{
 		//Divide the xcoeffs (b in matlab) with gain, and reverse the order of ycoeffs(a in matlab)
 		for (int i = 0;i<b.xcoeffs.length;++i){
 			ret[0][i] =b.xcoeffs[i]/b.gain;
-			ret[1][b.ycoeffs.length-1-i] =b.ycoeffs[i];
+			ret[1][b.ycoeffs.length-1-i] =-1d*b.ycoeffs[i];
 		}
 		return ret;
 	}
