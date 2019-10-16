@@ -21,6 +21,7 @@ public class ActigraphCounts{
 		
 	public ActigraphCounts(double[] resultant, double sRate){
 		AliasingFilter alf = new AliasingFilter(new double[]{0.1, 7d},sRate);
+		double[][] afCoeffs =  getBandPassButterworthCoefficients(new double[]{0.1,7d}, double sRate);
 		//Apply ag filter gain on B coeffs
 		for (int i=0;i<B.length;++i){B[i]*=gain;}		
 		//Resample the signal to 30 Hz
