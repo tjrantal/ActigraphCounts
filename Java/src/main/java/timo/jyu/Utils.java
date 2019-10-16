@@ -10,7 +10,7 @@ public class Utils{
 	//http://www-users.cs.york.ac.uk/~fisher/mkfilter/
 	public static double[][] getBandPassButterworthCoefficients(double[] corners, double sRate){
 		ButterworthCoefficients b = new ButterworthCoefficients();
-		b.butter(new String[]{"Bu","Bp","o","4","a",Double.toString((0.1/sRate),Double.toString((7d/sRate)});
+		b.butter(new String[]{"Bu","Bp","o","4","a",Double.toString(0.1/sRate),Double.toString(7d/sRate)});
 		double[][] ret = new double[2][];
 		ret[0] = new double[b.xcoeffs.length];
 		ret[1] = new double[b.ycoeffs.length];
