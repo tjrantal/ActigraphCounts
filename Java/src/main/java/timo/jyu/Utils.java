@@ -6,7 +6,7 @@ import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 public class Utils{
 	public static double[] filter(double[] b, double[] a, double[] signal){
 		double[] output = new double[signal.length];
-		for (int i = 1;i<output.length;++i){
+		for (int i = 0;i<output.length;++i){
 			output[i] = 0;
 			/*Sum b coeff*/
 			for (int j = 0; j<b.length;++j){
