@@ -21,23 +21,34 @@ public class Utils{
 		}
 		return ret;
 	}
-
+	
+	/**
+		Filter without initial state (=set initial state to all zeros)
+	*/
 	public static double[] filter(double[] b, double[] a, double[] signal){
+		return filter(b,a,signal,new double[a.length-1]);
+	}
+	
+	/**
+		Filter with initial state
+		ported from https://github.com/greenm01/forc/blob/master/sandbox/filter.m
+	*/
+	public static double[] filter(double[] b, double[] a, double[] signal,double[] state){
 		double[] output = new double[signal.length];
 		for (int i = 0;i<output.length;++i){
-			output[i] = 0;
-			/*Sum b coeff*/
-			for (int j = 0; j<b.length;++j){
-				if (i-j >= 0){
-					output[i]+=b[j]/a[0]*signal[i-j];
-				}
-			}			
-			/*Sum a coeff*/
-			for (int j = 1; j<a.length;++j){
-				if (i-j >= 0){
-						output[i]-=a[j]/a[0]*output[i-j];
-				}
+			output[i] = state[0]+b[0]*signal[i]; //Next output does not depend on a coeffs
+			//Update state vector after the current output is known
+			
+			/*Update state*/
+			for (int j = 1; j<state.length;++j){
+				/*
+				w(1:(lw-1)) = w(2:lw) - a(2:lw)*y(index) + b(2:lw)*x(index);
+       		 w(lw) = b(MN)*x(index) - a(MN) * y(index);
+				
+				*/
+				state[j-1] = state[j]-a[j]*output[i]+b[j]*signal[i];
 			}
+			state[state.length-1]=b[state.length]*signal[i]-a[state.length]*output[i];		
 		}
 		return output;
 	}
