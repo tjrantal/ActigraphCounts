@@ -29,6 +29,82 @@ public class Utils{
 		return filter(b,a,signal,new double[a.length-1]);
 	}
 	
+	private static double[] reverse(double[] a){
+		double[] b = new double[a.length];
+		for (int i = 0;i<b.length;++i){
+			b[b.length-1-i] = a[i];
+		}
+		return b;		
+	}
+	
+	private static double sum(double[] a){
+		double b = 0d;
+		for (int i = 0;i<a.length;++i){
+			b += a[i];
+		}
+		return b;
+	}
+	/**helper function for zero-lag filtering
+		copied from octave filtfilt.m*/
+	public static double[] prepState(double[] b, double[] a,double[] state){
+		double kdc = sum(b)/sum(a);
+		double[] temp = new double[a.length];
+		//Initialise state if kdc is not infinity or NaN
+		if (Math.abs(kdc) < Double.POSITIVE_INFINITY && !Double.isNaN(kdc)){
+			
+			for (int i = 0;i<state.length;++i){
+				temp[i] = b[i]-kdc*a[i];
+			}
+			temp = reverse(temp);
+			for (int i = 1;i<temp.length;++i){
+				temp[i] += temp[i]-1;
+			}
+			temp = reverse(temp);
+			for (int i = 1;i<temp.length;++i){
+				state[i-1] = temp[i];
+			}
+		}
+		return state;
+	}
+	
+	private static double[] multArray(double[] a, double b){
+		double[] c = new double[a.length];
+		for (int i = 0;i<a.length;++i){c[i] = b*a[i];}
+		return c;
+	}
+	
+	/**
+		Zero-lag filter. Matches Octave/Matlab filtfilt 
+	*/
+	public static double[] filtfilt(double[] b, double[] a, double[] signal){
+		double[] state = prepState(b,a,new double[a.length-1]);
+		
+		//Mirror signal from the beginning and from the end, and insert signal in the middle
+		int initBackwardSamples = signal.length < 3*a.length-1 ? signal.length : 3*a.length-1;
+		double[] temp = new double[signal.length+2*initBackwardSamples];
+		for (int i = 0; i<initBackwardSamples; ++i){
+			temp[i] = 2d*signal[0]-signal[initBackwardSamples-i];
+			temp[initBackwardSamples+signal.length+i]=2d*signal[signal.length-1]-signal[signal.length-2-i];
+		}
+		for (int i = 0;i<signal.length;++i){
+			temp[initBackwardSamples+i] = signal[i];
+		}
+		temp = filter(b,a,temp,multArray(state,temp[0]));	//Filter forward
+		temp = reverse(temp);	//Switch direction
+		temp = filter(b,a,temp,multArray(state,temp[0]));	//Filter backward
+		temp = reverse(temp);	//Switch direction
+		//Return the mid-part without mirrored data
+		
+		
+		
+		double[] output = new double[signal.length];
+		for (int i = 0;i<signal.length;++i){
+			output[i] = temp[initBackwardSamples+i];
+		}
+		return output;
+	}
+	
+	
 	/**
 		Filter with initial state
 		ported from https://github.com/greenm01/forc/blob/master/sandbox/filter.m
