@@ -52,12 +52,12 @@ public class Utils{
 		//Initialise state if kdc is not infinity or NaN
 		if (Math.abs(kdc) < Double.POSITIVE_INFINITY && !Double.isNaN(kdc)){
 			
-			for (int i = 0;i<state.length;++i){
+			for (int i = 0;i<a.length;++i){
 				temp[i] = b[i]-kdc*a[i];
 			}
 			temp = reverse(temp);
 			for (int i = 1;i<temp.length;++i){
-				temp[i] += temp[i]-1;
+				temp[i] += temp[i-1];
 			}
 			temp = reverse(temp);
 			for (int i = 1;i<temp.length;++i){
