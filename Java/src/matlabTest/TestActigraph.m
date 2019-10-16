@@ -10,8 +10,12 @@ clc;
 addpath('functions');
 addpath('../../../Matlab');	%Brond Matlab implementation
 load('../../../Matlab/agcoefficients.mat');	%Load the filter coefficients
-javaclasspath('../../build/libs/BrondActigraphCounts-1.0.jar'); %Add the java implementation into classpath
-
+if exist('OCTAVE_VERSION', 'builtin') 
+	pkg load signal	%Filter functions (butter) are in the signal package
+	javaaddpath('../../build/libs/BrondActigraphCounts-1.0.jar')
+else
+	javaclasspath('../../build/libs/BrondActigraphCounts-1.0.jar'); %Add the java implementation into classpath
+end
 %Read a sample file recorded with a smartphone worn in front pocket. The file contains data from roughly a 25 min jog.
 dataFolder = '../res/';
 accFile = getFilesAndFolders([dataFolder]);
@@ -27,7 +31,11 @@ countsJ = javaMethod('getCounts',javaAGC);
 t = ([1:length(resultant)]-1)./sRate;
 %Apply aliasing filter (agfilt does not apply aliasing filter if sRate ~=
 %30 Hz
-[b,a] = butter(4,[0.1 7]/(sRate/2),'bandpass');
+if exist('OCTAVE_VERSION', 'builtin') 
+	[b,a] = butter(4,[0.1 7]/(sRate/2));
+else
+	[b,a] = butter(4,[0.1 7]/(sRate/2),'bandpass');
+end
 aRes = filtfilt(b,a,resultant);
 
 countsMat = agfilt(aRes,sRate,B,A);
@@ -36,15 +44,15 @@ indices = 1:sRate:length(t);
 figure
 ah =  []; cnt = 0;
 subplot(2,1,1)
-plot(t,resultant,'k');
+plot(t,resultant,'k','linewidth',3);
 title('Resultant acceleration');
 xlabel('Time [s]');
 ylabel('[g]');
 cnt = cnt+1; ah(cnt) = gca();
 subplot(2,1,2)
-plot(t(indices),countsMat,'k');
+plot(t(indices),countsMat,'k','linewidth',3);
 hold on;
-plot(t(indices(1:length(countsJ))),countsJ,'r');
+plot(t(indices(1:length(countsJ))),countsJ,'r','linewidth',3);
 xlabel('Time [s]');
 ylabel('one second count sums [count]');
 cnt = cnt+1; ah(cnt) = gca();
