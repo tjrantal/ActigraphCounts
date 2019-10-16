@@ -23,25 +23,36 @@ data = readLog([dataFolder accFile(1).name]);
 sRate = round(1/median(diff(data.data(:,1)./1000))); %Time stamps are milliseconds
 acc = data.data(:,2:4)./9.81;	%Acceleration in g
 resultant = sqrt(sum(acc.^2,2));
-javaAGC = javaObject('timo.jyu.ActigraphCounts',resultant,100);
+%resample to 30 Hz
+t = ([1:length(resultant)]-1)./sRate;
+%t = [0:t100(end)*30]/30;
+%resultant = interp1(t100,resultant100,t);
+javaAGC = javaObject('timo.jyu.ActigraphCounts',resultant,sRate);
 countsJ = javaMethod('getCounts',javaAGC);
 
 
 %Calculations with matlab
-t = ([1:length(resultant)]-1)./sRate;
+
 %Apply aliasing filter (agfilt does not apply aliasing filter if sRate ~=
 %30 Hz
-if exist('OCTAVE_VERSION', 'builtin') 
-	[b,a] = butter(4,[0.1 7]/(sRate/2));
-else
-	[b,a] = butter(4,[0.1 7]/(sRate/2),'bandpass');
+%if exist('OCTAVE_VERSION', 'builtin') 
+%	[b,a] = butter(4,[0.1 7]/(sRate/2));
+%else
+%	[b,a] = butter(4,[0.1 7]/(sRate/2),'bandpass');
+%end
+aRes = filtfilt(javaMethod('getB',javaAGC),javaMethod('getA',javaAGC),resultant);
+%keyboard;
+if size(aRes,2) > size(aRes,1)
+	aRes = aRes';
 end
-aRes = filtfilt(b,a,resultant);
+countsMat = agfilt_interp(aRes,100,B,A);
+difference = countsMat-countsJ;
+disp(sprintf('Counts diffMax %f diffMin %f meanDiff %f',max(difference),min(difference),mean(difference)));
 
-countsMat = agfilt(aRes,sRate,B,A);
+%keyboard;
 indices = 1:sRate:length(t);
 
-figure
+fh = figure
 ah =  []; cnt = 0;
 subplot(2,1,1)
 plot(t,resultant,'k','linewidth',3);
@@ -57,3 +68,4 @@ xlabel('Time [s]');
 ylabel('one second count sums [count]');
 cnt = cnt+1; ah(cnt) = gca();
 linkaxes(ah,'x');
+waitfor(fh);

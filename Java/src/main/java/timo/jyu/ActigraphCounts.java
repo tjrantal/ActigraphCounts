@@ -18,17 +18,20 @@ public class ActigraphCounts{
 	private double maxTrunc = 2.13;
 	private int integN = 10;
 	double[] counts = null;
+	double[][] afCoeffs = null;
 		
 	public ActigraphCounts(double[] resultant, double sRate){
-		AliasingFilter alf = new AliasingFilter(new double[]{0.1, 7d},sRate);
-		double[][] afCoeffs =  Utils.getBandPassButterworthCoefficients(new double[]{0.1,7d}, sRate);
+		//AliasingFilter alf = new AliasingFilter(new double[]{0.1, 7d},sRate);
+		afCoeffs =  Utils.getBandPassButterworthCoefficients(new double[]{0.1,7d}, sRate);
 		//Apply ag filter gain on B coeffs
 		for (int i=0;i<B.length;++i){B[i]*=gain;}		
 		//Resample the signal to 30 Hz
 		double[] t = getT(resultant.length,sRate);
 		double[] intT = getT((int) (Math.floor(t[t.length-1]*30d))+1,30d);
 		//Apply anti aliasing, down sample, etc 
-		counts = calcCounts(pptruncDeadband8bit(down10(Utils.filter(B,A,Utils.interp(t,alf.filtfilt(resultant),intT))),maxTrunc,deadband,adcResolution));
+		//counts = calcCounts(pptruncDeadband8bit(down10(Utils.filter(B,A,Utils.interp(t,alf.filtfilt(resultant),intT))),maxTrunc,deadband,adcResolution));
+		counts = calcCounts(pptruncDeadband8bit(down10(Utils.filter(B,A,Utils.interp(t,Utils.filtfilt(afCoeffs[0],afCoeffs[1],resultant),intT))),maxTrunc,deadband,adcResolution));
+		
 		/*
 		double[] antialiased = alf.filtfilt(resultant);
 		//Resample the signal to 30 Hz
@@ -45,6 +48,14 @@ public class ActigraphCounts{
 		counts = calcCounts(truncated);
 		*/
 		
+	}
+	
+	public double[] getA(){
+		return afCoeffs[1];
+	}
+	
+	public double[] getB(){
+		return afCoeffs[0];
 	}
 	
 	public double[] getCounts(){
