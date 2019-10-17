@@ -2,7 +2,6 @@ package timo.jyu;
 
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
-
 import timo.jyu.filter.ButterworthCoefficients;
 
 public class Utils{
@@ -20,13 +19,6 @@ public class Utils{
 			ret[1][b.ycoeffs.length-1-i] =-1d*b.ycoeffs[i];
 		}
 		return ret;
-	}
-	
-	/**
-		Filter without initial state (=set initial state to all zeros)
-	*/
-	public static double[] filter(double[] b, double[] a, double[] signal){
-		return filter(b,a,signal,new double[a.length-1]);
 	}
 	
 	private static double[] reverse(double[] a){
@@ -90,19 +82,14 @@ public class Utils{
 	*/
 	public static double[] filtfilt(double[] b, double[] a, double[] signal){
 		double[] state = prepState(b,a,new double[a.length-1]);
-		
 		//Mirror signal from the beginning and from the end, and insert signal in the middle
 		int initBackwardSamples = signal.length < 3*(a.length-1) ? signal.length : 3*(a.length-1);
 		double[] temp = getMirrored(signal,initBackwardSamples);
-		
 		temp = filter(b,a,temp,multArray(state,temp[0]));	//Filter forward
 		temp = reverse(temp);	//Switch direction
 		temp = filter(b,a,temp,multArray(state,temp[0]));	//Filter backward
 		temp = reverse(temp);	//Switch direction
 		//Return the mid-part without mirrored data
-		
-		
-		
 		double[] output = new double[signal.length];
 		for (int i = 0;i<signal.length;++i){
 			output[i] = temp[initBackwardSamples+i];
@@ -120,25 +107,24 @@ public class Utils{
 		for (int i = 0;i<output.length;++i){
 			output[i] = state[0]+b[0]*signal[i]; //Next output does not depend on a coeffs
 			//Update state vector after the current output is known
-			
-			/*Update state*/
 			for (int j = 1; j<state.length;++j){
-				/*
-				w(1:(lw-1)) = w(2:lw) - a(2:lw)*y(index) + b(2:lw)*x(index);
-       		 w(lw) = b(MN)*x(index) - a(MN) * y(index);
-				
-				*/
 				state[j-1] = state[j]-a[j]*output[i]+b[j]*signal[i];
 			}
 			state[state.length-1]=b[state.length]*signal[i]-a[state.length]*output[i];		
 		}
 		return output;
 	}
+	
+		/**
+		Filter without initial state (=set initial state to all zeros)
+	*/
+	public static double[] filter(double[] b, double[] a, double[] signal){
+		return filter(b,a,signal,new double[a.length-1]);
+	}
 
 	public static double[] interp(double[] x, double[] y, double[] xx){
 		double[] yy = new double[xx.length];
 		PolynomialSplineFunction interpolator = (new LinearInterpolator()).interpolate(x, y);
-		
 		for (int i = 0;i<yy.length;++i){
 			yy[i] = interpolator.value(xx[i]);
 		}

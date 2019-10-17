@@ -10,6 +10,9 @@ clc;
 addpath('functions');
 addpath('../../../Matlab');	%Brond Matlab implementation
 load('../../../Matlab/agcoefficients.mat');	%Load the filter coefficients
+
+%writetable(array2table(num2cell([B;A])),'coeffs.csv');
+
 if exist('OCTAVE_VERSION', 'builtin') 
 	pkg load signal	%Filter functions (butter) are in the signal package
 	javaaddpath('../../build/libs/BrondActigraphCounts-1.0.jar')
@@ -24,55 +27,46 @@ sRate = round(1/median(diff(data.data(:,1)./1000))); %Time stamps are millisecon
 acc = data.data(:,2:4)./9.81;	%Acceleration in g
 resultant = sqrt(sum(acc.^2,2));
 
+%Full java analysis, resampling different from agfilt (agfilt uses
+%resample, Java uses linear interpolation).
+javaAGC = javaObject('timo.jyu.ActigraphCounts',resultant,sRate);
+countsFJ = javaMethod('getCounts',javaAGC);
 
-javaAGC = javaObject('timo.jyu.ActigraphCounts',sRate);
-[javaMethod('getB',javaAGC), javaMethod('getA',javaAGC)];
-%[B2,A2] =  butter(4,[0.01 7]./(sRate/2));
-B2 = javaMethod('getB',javaAGC);
-A2 = javaMethod('getA',javaAGC);
-aFilt = filtfilt(B2,A2,resultant);
-% javaMethod('setB',javaAGC,B2);
-% javaMethod('setA',javaAGC,A2);
-aFiltJ =javaMethod('getAFiltered',javaAGC,resultant);
+%Anti-alising filter
+b = javaMethod('getB',javaAGC);
+a = javaMethod('getA',javaAGC);
+aFiltered = filtfilt(b,a,resultant);
 
-figure
-plot(aFilt,'k');
-hold on;
-plot(aFiltJ,'r');
-keyboard;
-
-
-
-%resample to 30 Hz
-t = ([1:length(resultant)]-1)./sRate;
-%t = [0:t100(end)*30]/30;
-%resultant = interp1(t100,resultant100,t);
-%javaAGC = javaObject('timo.jyu.ActigraphCounts',sRate);
-%countsJ = javaMethod('getCounts',javaAGC);
-
-
-%Calculations with matlab
-
-%Apply aliasing filter (agfilt does not apply aliasing filter if sRate ~=
-%30 Hz
-%if exist('OCTAVE_VERSION', 'builtin') 
-%	[b,a] = butter(4,[0.1 7]/(sRate/2));
-%else
-%	[b,a] = butter(4,[0.1 7]/(sRate/2),'bandpass');
-%end
-%aRes = filtfilt(javaMethod('getB',javaAGC),javaMethod('getA',javaAGC),resultant);
-%keyboard;
-if size(resultant,2) > size(resultant,1)
-	resultant = resultant';
+if size(aFiltered,2) > size(aFiltered,1)
+	aFiltered = aFiltered';
 end
-countsMat = agfilt(resultant,100,B,A);
-difference = countsMat-countsJ;
-disp(sprintf('Counts diffMax %f diffMin %f meanDiff %f',max(difference),min(difference),mean(difference)));
+countsMat = agfilt(aFiltered,100,B,A);
 
-%keyboard;
+
+%Replicate Matlab analysis
+deadband = 0.068;
+peakThreshold = 2.13;
+adcResolution = 0.0164;
+
+agResampledData = resample(aFiltered,30,sRate);
+javaAGC = javaObject('timo.jyu.ActigraphCounts',30);
+agFilt =javaMethod('getAGFiltered',javaAGC,agResampledData);
+down_10 =javaMethod('down10',javaAGC,agFilt);
+trunc8bit =javaMethod('pptruncDeadband8bit',javaAGC,down_10,peakThreshold,deadband,adcResolution);
+countsJ =javaMethod('getCounts',javaAGC,trunc8bit);
+
+difference = countsMat-countsFJ;
+disp(sprintf('Full java counts diffMax %f diffMin %f meanDiff %f',max(difference),min(difference),mean(difference)));
+
+
+difference = countsMat-countsJ;
+disp(sprintf('Matched java counts diffMax %f diffMin %f meanDiff %f',max(difference),min(difference),mean(difference)));
+
+
+t = ([1:length(resultant)]-1)./sRate;
 indices = 1:sRate:length(t);
 
-fh = figure
+fh = figure;
 ah =  []; cnt = 0;
 subplot(2,1,1)
 plot(t,resultant,'k','linewidth',3);
@@ -84,6 +78,7 @@ subplot(2,1,2)
 plot(t(indices),countsMat,'k','linewidth',3);
 hold on;
 plot(t(indices(1:length(countsJ))),countsJ,'r','linewidth',3);
+plot(t(indices(1:length(countsJ))),countsFJ,'b','linewidth',3);
 xlabel('Time [s]');
 ylabel('one second count sums [count]');
 cnt = cnt+1; ah(cnt) = gca();

@@ -4,14 +4,13 @@ package timo.jyu;
 	Java port of Jan Brønd's Actigraph counts from raw accelerations
 	Written by Timo Rantalainen tjrantal at gmail dot com 2019
 	This Java port released to the public domain with a CC0-BY Creative Commons Attribution license	
-	
-	Depends on the IIR filter library https://github.com/berndporr/iirj written by Bernd Porr [http://www.berndporr.me.uk] for Butterworth filtering
+	Filtering ported from http://www-users.cs.york.ac.uk/~fisher/mkfilter/, https://github.com/greenm01/forc/blob/master/sandbox/filter.m and https://searchcode.com/codesearch/view/9521190/ 
 */
 
 public class ActigraphCounts{
-	//Coeffs from R code
-	private static final double[] A = new double[]{1,-4.1637,7.5712,-7.9805,5.385,-2.4636,0.89238,0.06361,-1.3481,2.4734,-2.9257,2.9298,-2.7816,2.4777,-1.6847,0.46483,0.46565,-0.67312,0.4162,-0.13832,0.019852};
-	private double[] B = new double[]{0.049109,-0.12284,0.14356,-0.11269,0.053804,-0.02023,0.0063778,0.018513,-0.038154,0.048727,-0.052577,0.047847,-0.046015,0.036283,-0.012977,-0.0046262,0.012835,-0.0093762,0.0034485,-0.00080972,-0.00019623};
+	//Coeffs written to a text file from Matlab
+	private static final double[] A = new double[]{1,-4.16372602554363,7.57115309014007,-7.9804690250911,5.38501191026769,-2.46356271321257,0.89238142271725,0.0636099868633388,-1.34810512714076,2.47338133053049,-2.92571735841718,2.92983230386598,-2.78159062882719,2.4776735357121,-1.68473849390463,0.464828627239016,0.465652889035618,-0.67311896742996,0.416203225759379,-0.13832322391961,0.0198517159761605};
+	private double[] B = new double[]{0.0491089825140488,-0.122841835307157,0.143557884896153,-0.112693989220238,0.0538037410952924,-0.020230273840001,0.00637784647673757,0.0185125409235852,-0.0381541058906574,0.0487265187117185,-0.0525772146919335,0.047847138089546,-0.0460148280299714,0.0362833364868511,-0.0129768121654561,-0.00462621079355692,0.0128353970741233,-0.00937622141658307,0.00344850106651387,-0.000809720155277696,-0.000196225290878896};
 	public static final double adcResolution = 0.0164;
 	public static final double gain = 0.965;
 	public static final double deadband = 0.068;
@@ -20,21 +19,22 @@ public class ActigraphCounts{
 	double[] counts = null;
 	double[][] afCoeffs = null;
 		
-	public ActigraphCounts(double sRate){
-		//AliasingFilter alf = new AliasingFilter(new double[]{0.1, 7d},sRate);
+	/*Constructor that runs the analysis*/
+	public ActigraphCounts(double[] resultant, double sRate){
 		afCoeffs =  Utils.getBandPassButterworthCoefficients(new double[]{0.1,7d}, sRate);
-		for (int i=0;i<B.length;++i){B[i]*=gain;}	//Apply ag filter gain on B coeffs		
+		for (int i=0;i<B.length;++i){
+			B[i] = B[i]*gain; //Apply ag filter gain on B coeffs
+		}	
+		counts = calcCounts(pptruncDeadband8bit(down10(getAGFiltered(getInterpolated(getAFiltered(resultant),sRate))),maxTrunc,deadband,adcResolution));
 	}
 	
-	/*
-		aFilt = getAFiltered(afCoeffs[0],afCoeffs[1],resultant)
-		down30 = getInterpolated(t,aFilt,sRate)
-		agFilt = Utils.filter(B,A,down30)
-		down_10 = down10(agFilt)
-		trunc8bit = pptruncDeadband8bit(down_10,maxTrunc,deadband,adcResolution)
-		counts = calcCounts(trunc8bit);
-		
-	*/
+	/*Constructor to be used to run the analysis step by step*/
+	public ActigraphCounts(double sRate){
+		afCoeffs =  Utils.getBandPassButterworthCoefficients(new double[]{0.1,7d}, sRate);
+		for (int i=0;i<B.length;++i){
+			B[i] = B[i]*gain; //Apply ag filter gain on B coeffs
+		}	
+	}
 	
 	public double[] getCounts(double[] a){
 		counts = calcCounts(a);
@@ -82,7 +82,7 @@ public class ActigraphCounts{
 		return Utils.filtfilt(afCoeffs[0],afCoeffs[1],resultant);
 	}
 	
-		public double[] getAGFiltered(double[] down30){
+	public double[] getAGFiltered(double[] down30){
 		return Utils.filter(B,A,down30);
 	}
 	
