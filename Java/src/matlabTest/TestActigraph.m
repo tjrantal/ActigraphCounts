@@ -27,8 +27,8 @@ resultant = sqrt(sum(acc.^2,2));
 t = ([1:length(resultant)]-1)./sRate;
 %t = [0:t100(end)*30]/30;
 %resultant = interp1(t100,resultant100,t);
-javaAGC = javaObject('timo.jyu.ActigraphCounts',resultant,sRate);
-countsJ = javaMethod('getCounts',javaAGC);
+%javaAGC = javaObject('timo.jyu.ActigraphCounts',sRate);
+%countsJ = javaMethod('getCounts',javaAGC);
 
 
 %Calculations with matlab
@@ -40,12 +40,12 @@ countsJ = javaMethod('getCounts',javaAGC);
 %else
 %	[b,a] = butter(4,[0.1 7]/(sRate/2),'bandpass');
 %end
-aRes = filtfilt(javaMethod('getB',javaAGC),javaMethod('getA',javaAGC),resultant);
+%aRes = filtfilt(javaMethod('getB',javaAGC),javaMethod('getA',javaAGC),resultant);
 %keyboard;
-if size(aRes,2) > size(aRes,1)
-	aRes = aRes';
+if size(resultant,2) > size(resultant,1)
+	resultant = resultant';
 end
-countsMat = agfilt_interp(aRes,100,B,A);
+countsMat = agfilt(resultant,100,B,A);
 difference = countsMat-countsJ;
 disp(sprintf('Counts diffMax %f diffMin %f meanDiff %f',max(difference),min(difference),mean(difference)));
 
