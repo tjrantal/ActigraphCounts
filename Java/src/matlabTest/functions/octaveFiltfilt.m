@@ -33,14 +33,32 @@ function y = filtfilt(b, a, x)
     si = zeros(size(a)); % fall back to zero initialization
   end
   si(1) = [];
-
+    
+%   jsi = javaMethod('prepState','timo.jyu.Utils',b,a,zeros(length(a)-1,1));
+%   [si', jsi]
+  
+%   keyboard;
   for (c = 1:size(x,2)) % filter all columns, one by one
-      keyboard;
+%       keyboard;
     v = [2*x(1,c)-x((lrefl+1):-1:2,c); x(:,c);
          2*x(end,c)-x((end-1):-1:end-lrefl,c)]; % a column vector
-
+%      jv =  javaMethod('getMirrored','timo.jyu.Utils',x(:,c),3*(length(a)-1));
+%      
+%      
+%      keyboard;
      % Do forward and reverse filtering
-    v = filter(b,a,v,si*v(1));                   % forward filter
+%      zeroState =  zeros(length(a)-1,1);
+%      jv0 =javaMethod('filter','timo.jyu.Utils',b,a,v,zeroState);
+%      v0 = filter(b,a,v,zeroState);
+%      v0_ = filter(b,a,v);% forward filter
+%     jv = javaMethod('filter','timo.jyu.Utils',b,a,v,si*v(1));
+     v = filter(b,a,v,si*v(1));                   % forward filter
+%     figure
+%     plot(v0_,'k');
+%     hold on;
+%     plot(jv0,'r');
+%     keyboard;
+    
     v = flipud(filter(b,a,flipud(v),si*v(end))); % reverse filter
     y(:,c) = v((lrefl+1):(lx+lrefl));
   end

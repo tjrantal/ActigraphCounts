@@ -73,6 +73,18 @@ public class Utils{
 		return c;
 	}
 	
+	public static double[] getMirrored(double[] signal, int mirrorLength){
+		double[] temp = new double[signal.length+2*mirrorLength];
+		for (int i = 0; i<mirrorLength; ++i){
+			temp[i] = 2d*signal[0]-signal[mirrorLength-i];
+			temp[mirrorLength+signal.length+i]=2d*signal[signal.length-1]-signal[signal.length-2-i];
+		}
+		for (int i = 0;i<signal.length;++i){
+			temp[mirrorLength+i] = signal[i];
+		}
+		return temp;
+	}
+	
 	/**
 		Zero-lag filter. Matches Octave/Matlab filtfilt 
 	*/
@@ -80,15 +92,9 @@ public class Utils{
 		double[] state = prepState(b,a,new double[a.length-1]);
 		
 		//Mirror signal from the beginning and from the end, and insert signal in the middle
-		int initBackwardSamples = signal.length < 3*a.length-1 ? signal.length : 3*a.length-1;
-		double[] temp = new double[signal.length+2*initBackwardSamples];
-		for (int i = 0; i<initBackwardSamples; ++i){
-			temp[i] = 2d*signal[0]-signal[initBackwardSamples-i];
-			temp[initBackwardSamples+signal.length+i]=2d*signal[signal.length-1]-signal[signal.length-2-i];
-		}
-		for (int i = 0;i<signal.length;++i){
-			temp[initBackwardSamples+i] = signal[i];
-		}
+		int initBackwardSamples = signal.length < 3*(a.length-1) ? signal.length : 3*(a.length-1);
+		double[] temp = getMirrored(signal,initBackwardSamples);
+		
 		temp = filter(b,a,temp,multArray(state,temp[0]));	//Filter forward
 		temp = reverse(temp);	//Switch direction
 		temp = filter(b,a,temp,multArray(state,temp[0]));	//Filter backward

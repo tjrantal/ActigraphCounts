@@ -23,6 +23,26 @@ data = readLog([dataFolder accFile(1).name]);
 sRate = round(1/median(diff(data.data(:,1)./1000))); %Time stamps are milliseconds
 acc = data.data(:,2:4)./9.81;	%Acceleration in g
 resultant = sqrt(sum(acc.^2,2));
+
+
+javaAGC = javaObject('timo.jyu.ActigraphCounts',sRate);
+[javaMethod('getB',javaAGC), javaMethod('getA',javaAGC)];
+%[B2,A2] =  butter(4,[0.01 7]./(sRate/2));
+B2 = javaMethod('getB',javaAGC);
+A2 = javaMethod('getA',javaAGC);
+aFilt = filtfilt(B2,A2,resultant);
+% javaMethod('setB',javaAGC,B2);
+% javaMethod('setA',javaAGC,A2);
+aFiltJ =javaMethod('getAFiltered',javaAGC,resultant);
+
+figure
+plot(aFilt,'k');
+hold on;
+plot(aFiltJ,'r');
+keyboard;
+
+
+
 %resample to 30 Hz
 t = ([1:length(resultant)]-1)./sRate;
 %t = [0:t100(end)*30]/30;
